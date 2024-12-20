@@ -1,0 +1,89 @@
+import numpy as np
+import random
+
+class Ant:
+    def __init__(self, num_nodes):
+        self.path = []
+        self.distance = 0
+        self.num_nodes = num_nodes
+
+    def visit_node(self, node, distance_matrix):
+        if len(self.path) > 0:
+            self.distance += distance_matrix[self.path[-1]][node]
+        self.path.append(node)
+
+    def tour_complete(self, distance_matrix):
+        return_to_start = distance_matrix[self.path[-1]][self.path[0]]
+        self.distance += return_to_start
+        self.path.append(self.path[0])  # return to start node
+
+class AntColonyOptimizer:
+    def __init__(self, num_nodes, distance_matrix, num_ants, alpha=1, beta=2, evaporation=0.5, q=10):
+        self.num_nodes = num_nodes
+        self.distance_matrix = distance_matrix
+        self.num_ants = num_ants
+        self.alpha = alpha
+        self.beta = beta
+        self.evaporation = evaporation
+        self.q = q
+        self.pheromone = np.ones((num_nodes, num_nodes))
+
+    def _probability(self, i, j, visited):
+        pheromone = self.pheromone[i][j] ** self.alpha
+        heuristic = (1 / self.distance_matrix[i][j]) ** self.beta
+        return pheromone * heuristic if j not in visited else 0
+
+    def _select_next_node(self, ant):
+        unvisited = [node for node in range(self.num_nodes) if node not in ant.path]
+        probabilities = [self._probability(ant.path[-1], node, ant.path) for node in unvisited]
+        total = sum(probabilities)
+        if total == 0: return random.choice(unvisited)
+        probabilities = [p / total for p in probabilities]
+        return np.random.choice(unvisited, p=probabilities)
+
+    def _update_pheromones(self, ants):
+        self.pheromone *= (1 - self.evaporation)
+        for ant in ants:
+            contribution = self.q / ant.distance
+            for i in range(len(ant.path) - 1):
+                u, v = ant.path[i], ant.path[i + 1]
+                self.pheromone[u][v] += contribution
+                self.pheromone[v][u] += contribution
+
+    def run(self, iterations=100):
+        best_distance = float('inf')
+        best_path = []
+
+        for _ in range(iterations):
+            ants = [Ant(self.num_nodes) for _ in range(self.num_ants)]
+
+            for ant in ants:
+                ant.visit_node(random.randint(0, self.num_nodes - 1), self.distance_matrix)
+                while len(ant.path) < self.num_nodes:
+                    next_node = self._select_next_node(ant)
+                    ant.visit_node(next_node, self.distance_matrix)
+                ant.tour_complete(self.distance_matrix)
+
+                if ant.distance < best_distance:
+                    best_distance = ant.distance
+                    best_path = ant.path
+
+            self._update_pheromones(ants)
+
+        return best_path, best_distance
+
+# Example Usage
+if __name__ == "__main__":
+    num_nodes = 5
+    distance_matrix = np.array([
+        [0, 2, 2, 3, 4],
+        [2, 0, 4, 5, 3],
+        [2, 4, 0, 2, 3],
+        [3, 5, 2, 0, 5],
+        [4, 3, 3, 5, 0]
+    ])
+
+    optimizer = AntColonyOptimizer(num_nodes, distance_matrix, num_ants=10)
+    best_path, best_distance = optimizer.run(iterations=100)
+    print(f"Best Path: {best_path}")
+    print(f"Best Distance: {best_distance}")
