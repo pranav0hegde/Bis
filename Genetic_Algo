@@ -1,0 +1,95 @@
+import random
+
+# Define the problem: maximize f(x) = x^2
+def fitness_function(x):
+    return x ** 2
+
+# Initialize parameters
+POPULATION_SIZE = 100
+MUTATION_RATE = 0.01
+CROSSOVER_RATE = 0.9
+NUM_GENERATIONS = 50
+X_RANGE = (-10, 10)  # The range for the x values
+
+# Create an individual (a solution)
+def create_individual():
+    return random.uniform(X_RANGE[0], X_RANGE[1])
+
+# Create the initial population
+def create_population():
+    return [create_individual() for _ in range(POPULATION_SIZE)]
+
+# Evaluate the fitness of each individual
+def evaluate_population(population):
+    return [fitness_function(ind) for ind in population]
+
+# Selection using roulette wheel method
+def roulette_wheel_selection(population, fitness_values):
+    total_fitness = sum(fitness_values)
+    pick = random.uniform(0, total_fitness)
+    current = 0
+    for individual, fitness in zip(population, fitness_values):
+        current += fitness
+        if current > pick:
+            return individual
+
+# Crossover (linear crossover)
+def crossover(parent1, parent2):
+    if random.random() < CROSSOVER_RATE:
+        alpha = random.random()  # Weighted combination
+        offspring1 = alpha * parent1 + (1 - alpha) * parent2
+        offspring2 = alpha * parent2 + (1 - alpha) * parent1
+        return offspring1, offspring2
+    else:
+        return parent1, parent2
+
+# Mutation
+def mutate(individual):
+    if random.random() < MUTATION_RATE:
+        return random.uniform(X_RANGE[0], X_RANGE[1])
+    return individual
+
+# Genetic Algorithm function
+def genetic_algorithm():
+    # Step 1: Initialize the population
+    population = create_population()
+
+    for generation in range(NUM_GENERATIONS):
+        # Step 2: Evaluate the fitness
+        fitness_values = evaluate_population(population)
+
+        # Track the best solution in this generation
+        best_individual = population[fitness_values.index(max(fitness_values))]
+        best_fitness = max(fitness_values)
+
+        print(f"Generation {generation + 1}: Best Fitness = {best_fitness}, Best Individual = {best_individual}")
+
+        # Step 3: Create a new population
+        new_population = []
+
+        while len(new_population) < POPULATION_SIZE:
+            # Step 4: Selection
+            parent1 = roulette_wheel_selection(population, fitness_values)
+            parent2 = roulette_wheel_selection(population, fitness_values)
+
+            # Step 5: Crossover
+            offspring1, offspring2 = crossover(parent1, parent2)
+
+            # Step 6: Mutation
+            offspring1 = mutate(offspring1)
+            offspring2 = mutate(offspring2)
+
+            new_population.extend([offspring1, offspring2])
+
+        # Step 7: Replacement with the new population
+        population = new_population[:POPULATION_SIZE]  # Ensure population size is maintained
+
+    # After all generations, return the best solution found
+    fitness_values = evaluate_population(population)
+    best_individual = population[fitness_values.index(max(fitness_values))]
+    best_fitness = max(fitness_values)
+    print(f"\nBest Solution: x = {best_individual}, f(x) = {best_fitness}")
+
+# Run the genetic algorithm
+if __name__ == "__main__":
+    genetic_algorithm()
