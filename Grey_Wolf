@@ -1,0 +1,70 @@
+# Grey Wolf
+
+import numpy as np
+
+def obj_fn(x):
+    """Objective function to minimize."""
+    return np.sum(x**2)  # Example: Sphere function
+
+def gwo(obj_fn, dim, wolves, iters, lb, ub):
+    """Grey Wolf Optimm,kkl,k,,lkpppppppppizer (GWO) implementation."""
+    # Initialize wolf positions
+    pos = np.random.uniform(low=lb, high=ub, size=(wolves, dim))
+    a_pos, b_pos, d_pos = np.zeros(dim), np.zeros(dim), np.zeros(dim)
+    a_score, b_score, d_score = float("inf"), float("inf"), float("inf")
+
+    for t in range(iters):
+        for i in range(wolves):
+            fit = obj_fn(pos[i])
+            # Update Alpha, Beta, Delta
+            if fit < a_score:
+                d_score, d_pos = b_score, b_pos.copy()
+                b_score, b_pos = a_score, a_pos.copy()
+                a_score, a_pos = fit, pos[i].copy()
+            elif fit < b_score:
+                d_score, d_pos = b_score, b_pos.copy()
+                b_score, b_pos = fit, pos[i].copy()
+            elif fit < d_score:
+                d_score, d_pos = fit, pos[i].copy()
+
+        # Update wolf positions
+        a = 2 - t * (2 / iters)  # Linearly decreasing factor
+        for i in range(wolves):
+            for j in range(dim):
+                r1, r2 = np.random.rand(), np.random.rand()
+                A1, C1 = 2 * a * r1 - a, 2 * r2
+                D_a = abs(C1 * a_pos[j] - pos[i, j])
+                X1 = a_pos[j] - A1 * D_a
+
+                r1, r2 = np.random.rand(), np.random.rand()
+                A2, C2 = 2 * a * r1 - a, 2 * r2
+                D_b = abs(C2 * b_pos[j] - pos[i, j])
+                X2 = b_pos[j] - A2 * D_b
+
+                r1, r2 = np.random.rand(), np.random.rand()
+                A3, C3 = 2 * a * r1 - a, 2 * r2
+                D_d = abs(C3 * d_pos[j] - pos[i, j])
+                X3 = d_pos[j] - A3 * D_d
+
+                # Update position
+                pos[i, j] = (X1 + X2 + X3) / 3
+
+            # Keep wolves within bounds
+            pos[i] = np.clip(pos[i], lb, ub)
+
+        # Print progress
+        print(f"Iter {t+1}/{iters}, Best Score: {a_score}, Best Pos: {a_pos}")
+
+    return a_score, a_pos
+
+# Parameters
+dim = 5       # Problem dimension
+wolves = 20   # Number of wolves
+iters = 50   # Number of iterations
+lb = -10      # Lower bound
+ub = 10       # Upper bound
+
+# Run GWO
+best_score, best_pos = gwo(obj_fn, dim, wolves, iters, lb, ub)
+print("\nFinal Best Score:", best_score)
+print("Final Best Pos:", best_pos)
