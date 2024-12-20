@@ -1,0 +1,50 @@
+import numpy as np
+
+# Objective function to minimize
+def objective_function(x):
+    return x[0]*2 + x[1]*2  # Example: simple quadratic function
+
+# Lévy flight step generator
+def levy_flight(Lambda):
+    sigma = (np.math.gamma(1 + Lambda) * np.sin(np.pi * Lambda / 2) /
+             (np.math.gamma((1 + Lambda) / 2) * Lambda * 2*((Lambda - 1) / 2)))*(1 / Lambda)
+    u = np.random.normal(0, sigma, 2)
+    v = np.random.normal(0, 1, 2)
+    step = u / np.abs(v)**(1 / Lambda)
+    return step
+
+# CS parameters
+num_nests = 25
+discovery_rate = 0.25
+iterations = 100
+Lambda = 1.5  # Parameter for Lévy flights
+
+# Initialize nests
+nests = np.random.uniform(-10, 10, (num_nests, 2))
+best_nest = nests[0]
+best_fitness = objective_function(best_nest)
+
+# Main loop
+for _ in range(iterations):
+    # Generate new solutions using Lévy flight
+    for i in range(num_nests):
+        step_size = levy_flight(Lambda)
+        new_solution = nests[i] + step_size * (nests[i] - best_nest)
+        new_fitness = objective_function(new_solution)
+
+        # If new solution is better, replace the current solution
+        if new_fitness < objective_function(nests[i]):
+            nests[i] = new_solution
+
+        # Update best solution
+        if new_fitness < best_fitness:
+            best_fitness = new_fitness
+            best_nest = new_solution
+
+    # Abandon a fraction of worst nests
+    num_abandoned = int(discovery_rate * num_nests)
+    worst_indices = np.argsort([objective_function(nest) for nest in nests])[-num_abandoned:]
+    nests[worst_indices] = np.random.uniform(-10, 10, (num_abandoned, 2))
+
+print("Best solution:", best_nest)
+print("Best fitness:", best_fitness)
